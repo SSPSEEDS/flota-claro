@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flota Claro — Southern Seeds Production SA</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Flota Claro</h1>
+      <span class="sub">Southern Seeds Production SA — 38 líneas móviles</span>
+    </div>
+    <div class="userbar">
+      <span id="userInfo"></span>
+      <button id="btnUsuarios" class="link" hidden>Usuarios</button>
+      <button id="btnSalir" class="link">Salir</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Importar factura (solo admin/editor) -->
+    <section class="card" id="importar" hidden>
+      <h2>Importar factura PDF</h2>
+      <div id="dropzone" class="dropzone">
+        <p>Arrastrá acá el PDF de la factura Claro<br /><small>o hacé clic para elegirlo</small></p>
+        <input type="file" id="fileInput" accept="application/pdf" hidden />
+      </div>
+      <div id="importMsg" class="msg"></div>
+      <details class="excel-migra">
+        <summary>Migrar el Excel histórico (una sola vez)</summary>
+        <p class="hint">Subí el archivo <code>LINEAS CLARO DEFINITIVA - Lucio.xlsx</code> para cargar los meses anteriores.</p>
+        <input type="file" id="excelInput" accept=".xlsx" />
+        <div id="excelMsg" class="msg"></div>
+      </details>
+    </section>
+
+    <!-- Panel de usuarios (solo admin) -->
+    <section class="card" id="panelUsuarios" hidden>
+      <h2>Usuarios</h2>
+      <div id="listaUsuarios"></div>
+      <form id="formUsuario" class="filtros" autocomplete="off">
+        <label>Usuario <input type="text" id="nuevoUser" required /></label>
+        <label>Nombre <input type="text" id="nuevoNombre" /></label>
+        <label>Contraseña <input type="password" id="nuevoPass" required /></label>
+        <label>Rol
+          <select id="nuevoRol">
+            <option value="viewer">Consulta (jefe)</option>
+            <option value="editor">Carga (compañero)</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </label>
+        <button type="submit">Crear / actualizar</button>
+      </form>
+      <div id="usuarioMsg" class="msg"></div>
+    </section>
+
+    <!-- Filtros -->
+    <section class="card">
+      <h2>Filtros</h2>
+      <div class="filtros">
+        <label>Mes
+          <select id="fPeriodo"><option value="">Todos</option></select>
+        </label>
+        <label>Usuario / Línea
+          <select id="fLinea"><option value="">Todas</option></select>
+        </label>
+        <label>Plan
+          <select id="fPlan"><option value="">Todos</option></select>
+        </label>
+        <label>Origen
+          <select id="fOrigen">
+            <option value="">Todos</option>
+            <option value="pdf">PDF</option>
+            <option value="excel">Excel (histórico)</option>
+          </select>
+        </label>
+        <label>Buscar usuario
+          <input type="text" id="fBuscar" placeholder="ej: Peroni" />
+        </label>
+        <button id="btnLimpiar" class="secundario">Limpiar</button>
+      </div>
+      <div class="vista-toggle">
+        <button id="btnTabla" class="activo">Tabla detallada</button>
+        <button id="btnPivote">Vista por mes (pivote)</button>
+        <span class="export">
+          <a id="btnCsv" class="boton">Exportar CSV</a>
+          <a id="btnXlsx" class="boton">Exportar Excel</a>
+          <label class="iva"><input type="checkbox" id="chkIva" /> con IVA 21%</label>
+        </span>
+      </div>
+    </section>
+
+    <!-- Resultados -->
+    <section class="card">
+      <div id="resumen" class="resumen"></div>
+      <div id="tablaWrap" class="tabla-wrap"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

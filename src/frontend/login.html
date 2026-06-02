@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ingresar — Flota Claro</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="login-body">
+  <form id="loginForm" class="login-card">
+    <h1>Flota Claro</h1>
+    <p class="sub">Southern Seeds Production SA</p>
+    <label>Usuario
+      <input type="text" id="username" autocomplete="username" required autofocus />
+    </label>
+    <label>Contraseña
+      <input type="password" id="password" autocomplete="current-password" required />
+    </label>
+    <button type="submit">Ingresar</button>
+    <div id="loginMsg" class="msg err"></div>
+  </form>
+  <script src="login.js"></script>
+</body>
+</html>

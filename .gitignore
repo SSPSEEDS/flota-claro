@@ -1,0 +1,19 @@
+node_modules/
+.env
+.env.local
+
+# Config local de Claude y base SQLite de la fase anterior (no van al repo).
+.claude/
+data/flota.db
+data/flota.db-shm
+data/flota.db-wal
+data/exports/*
+!data/exports/.gitkeep
+data/facturas/*
+!data/facturas/.gitkeep
+*.log
+
+# Datos sensibles: no subir facturas ni el Excel historico al repositorio.
+*.pdf
+*.xlsx
+*.xls
