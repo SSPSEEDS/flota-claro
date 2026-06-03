@@ -160,6 +160,24 @@ export async function getFactura(periodo) {
   return rows[0] ?? null;
 }
 
+/** Devuelve el tipo de cambio guardado de cada periodo como objeto { periodo: { tc, fuente } }. */
+export async function listarTipoCambio() {
+  const { rows } = await query('SELECT periodo, tc, fuente FROM tipo_cambio');
+  const out = {};
+  for (const r of rows) out[r.periodo] = { tc: r.tc, fuente: r.fuente };
+  return out;
+}
+
+/** Inserta o actualiza el tipo de cambio de un periodo. */
+export async function upsertTipoCambio({ periodo, tc, fuente = 'manual' }) {
+  await query(`
+    INSERT INTO tipo_cambio (periodo, tc, fuente, actualizado_en)
+    VALUES ($1, $2, $3, now())
+    ON CONFLICT (periodo) DO UPDATE SET
+      tc = EXCLUDED.tc, fuente = EXCLUDED.fuente, actualizado_en = now()
+  `, [periodo, tc, fuente]);
+}
+
 /** Devuelve el PDF guardado de un periodo (buffer + nombre). */
 export async function getFacturaPdf(periodo) {
   const { rows } = await query('SELECT pdf, pdf_nombre FROM facturas WHERE periodo = $1', [periodo]);

@@ -114,3 +114,23 @@ tr:hover td { background: #fafbfc; }
 .badge.excel { background: #eef7ee; color: var(--verde); }
 .total-row td { font-weight: 700; background: #fff7f6; border-top: 2px solid var(--rojo); }
 .vacio { padding: 24px; text-align: center; color: #6b7280; }
+
+/* Botón de acción dentro del resumen (no en la barra roja) */
+#resumen .link { color: var(--rojo); }
+
+/* Pivote: filas resumen tipo planilla (TOTAL / TC / USD / DIF) */
+.pivote .sum td { background: #f7f8fa; }
+.pivote .sum td.txt { font-weight: 700; color: #56607a; }
+.pivote .total-row td { background: #fff7f6; }
+.pivote .tc-row td { border-bottom: none; }
+.pivote .tc-cell input {
+  width: 90px; padding: 4px 6px; border: 1px solid var(--borde); border-radius: 6px;
+  font-size: 13px; text-align: right; background: #fff;
+}
+.pivote .tc-cell input:disabled { background: transparent; border-color: transparent; color: var(--texto); }
+.pivote .usd-row td { color: #56607a; font-style: italic; }
+.pivote .dif-row td { font-weight: 600; }
+.pivote .dif-up { color: var(--rojo); }      /* subió respecto al mes anterior */
+.pivote .dif-down { color: var(--verde); }    /* bajó respecto al mes anterior */
+.pivote tbody tr:last-child td,
+.pivote .dif-row td { border-bottom: 2px solid var(--borde); }

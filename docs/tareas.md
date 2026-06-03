@@ -13,6 +13,10 @@
 - [x] **Dockerfile** + `.dockerignore` + `.env.example` para EasyPanel
 - [x] Guía de despliegue paso a paso (GitHub + EasyPanel + backups)
 - [x] Tests: parser, integración con pg-mem, smoke de servidor (login/roles)
+- [x] Vista **por mes (pivote)** rediseñada como el Excel: filas TOTAL / TC / TOTAL USD /
+      DIF MES ANTERIOR. El TC se autocompleta con el **dólar oficial** (ArgentinaDatos) del último
+      día del mes y es editable a mano (tabla `tipo_cambio`, rutas `/api/tc`).
+- [x] Columna **Plan** muestra los GB al lado del código (ej: `CC10R (2 GB)`), en tabla y export
 
 ## Pendiente / ideas a futuro
 - [ ] Desplegar en el VPS (lo hace el usuario/TI con la guía) y crear los usuarios reales

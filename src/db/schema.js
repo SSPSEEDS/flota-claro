@@ -52,4 +52,11 @@ CREATE TABLE IF NOT EXISTS usuarios (
   rol           TEXT NOT NULL DEFAULT 'viewer', -- 'admin' | 'editor' | 'viewer'
   creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS tipo_cambio (
+  periodo        TEXT PRIMARY KEY,             -- YYYY-MM
+  tc             NUMERIC(14,4) NOT NULL,        -- pesos por dolar (oficial venta, ultimo dia del mes)
+  fuente         TEXT,                          -- 'oficial' (automatico) | 'manual'
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 `;

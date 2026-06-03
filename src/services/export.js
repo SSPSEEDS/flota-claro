@@ -2,6 +2,7 @@
 import xlsx from 'xlsx';
 import { queryLineas } from '../db/db.js';
 import { redondear2 } from '../lib/money.js';
+import { etiquetaPlan } from '../planes.js';
 
 const COLUMNAS = [
   ['periodo', 'Periodo'],
@@ -25,7 +26,7 @@ export async function armarFilas(filtros = {}, { conIva = false, alicuota = IVA_
   const lineas = await queryLineas(filtros);
   return lineas.map(l => {
     const fila = {};
-    for (const [campo, titulo] of COLUMNAS) fila[titulo] = l[campo];
+    for (const [campo, titulo] of COLUMNAS) fila[titulo] = campo === 'plan' ? etiquetaPlan(l[campo]) : l[campo];
     if (conIva) {
       fila[`IVA ${Math.round(alicuota * 100)}%`] = redondear2((l.total ?? 0) * alicuota);
       fila['Total con IVA'] = redondear2((l.total ?? 0) * (1 + alicuota));

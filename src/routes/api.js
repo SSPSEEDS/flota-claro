@@ -4,9 +4,12 @@ import multer from 'multer';
 import {
   queryLineas, listarPeriodos, listarLineas, listarPlanes,
   resumenPorPeriodo, getFactura, getFacturaPdf,
+  listarTipoCambio, upsertTipoCambio,
 } from '../db/db.js';
 import { importarPdf, importarExcel } from '../services/importer.js';
 import { exportarCSV, exportarXLSX } from '../services/export.js';
+import { obtenerOficialUltimoDia } from '../services/dolar.js';
+import { PLANES } from '../planes.js';
 import { requireAuth, puedeEditar, usuarioActual } from '../auth/middleware.js';
 import { error } from '../lib/log.js';
 
@@ -42,6 +45,14 @@ api.get('/filtros', async (_req, res, next) => {
 
 api.get('/resumen', async (_req, res, next) => {
   try { res.json(await resumenPorPeriodo()); } catch (e) { next(e); }
+});
+
+// Catalogo de planes (codigo -> GB/nombre) para mostrar los GB en el frontend.
+api.get('/planes', (_req, res) => { res.json(PLANES); });
+
+// Tipo de cambio guardado por periodo: { periodo: { tc, fuente } }.
+api.get('/tc', async (_req, res, next) => {
+  try { res.json(await listarTipoCambio()); } catch (e) { next(e); }
 });
 
 api.get('/factura/:periodo', async (req, res, next) => {
@@ -94,6 +105,37 @@ api.post('/import', puedeEditar, upload.single('pdf'), async (req, res, next) =>
       totalFactura: r.cabecera.total_factura,
     });
   } catch (e) { error('POST /import:', e.message); res.status(500).json({ error: e.message }); }
+});
+
+// Guardar/editar el tipo de cambio de un periodo a mano (admin/editor).
+api.post('/tc', puedeEditar, async (req, res, next) => {
+  try {
+    const periodo = String(req.body?.periodo || '').trim();
+    const tc = Number(req.body?.tc);
+    if (!/^\d{4}-\d{2}$/.test(periodo)) return res.status(400).json({ error: 'Periodo invalido (YYYY-MM).' });
+    if (!tc || tc <= 0) return res.status(400).json({ error: 'Tipo de cambio invalido.' });
+    await upsertTipoCambio({ periodo, tc, fuente: 'manual' });
+    res.json({ ok: true, periodo, tc, fuente: 'manual' });
+  } catch (e) { next(e); }
+});
+
+// Autocompletar el TC (dolar oficial) de los periodos indicados que aun no lo tengan (admin/editor).
+api.post('/tc/auto', puedeEditar, async (req, res, next) => {
+  try {
+    const periodos = Array.isArray(req.body?.periodos) ? req.body.periodos : [];
+    const existentes = await listarTipoCambio();
+    const tc = {};
+    const errores = [];
+    for (const p of periodos) {
+      if (!/^\d{4}-\d{2}$/.test(p) || existentes[p]) continue; // solo los faltantes
+      try {
+        const venta = await obtenerOficialUltimoDia(p);
+        await upsertTipoCambio({ periodo: p, tc: venta, fuente: 'oficial' });
+        tc[p] = venta;
+      } catch (e) { errores.push({ periodo: p, error: e.message }); }
+    }
+    res.json({ ok: true, tc, errores });
+  } catch (e) { error('POST /tc/auto:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // Migracion del Excel historico (una sola vez; admin/editor).
