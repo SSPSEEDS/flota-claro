@@ -370,7 +370,25 @@ async function cargarSesion() {
   puedeEditarRol = usuario.rol === 'admin' || usuario.rol === 'editor';
   $('#importar').hidden = !puedeEditarRol;
   $('#btnUsuarios').hidden = usuario.rol !== 'admin';
+  $('#zonaRiesgo').hidden = usuario.rol !== 'admin';
   return true;
+}
+
+// Vacía toda la facturación (solo admin). Pide confirmación escrita para evitar accidentes.
+async function vaciarTodo() {
+  const txt = prompt('Esto borra TODAS las líneas, facturas y tipos de cambio cargados.\n\nPara confirmar, escribí: BORRAR TODO');
+  if (txt !== 'BORRAR TODO') { if (txt !== null) alert('Cancelado: el texto no coincide.'); return; }
+  const msg = $('#vaciarMsg');
+  msg.className = 'msg load'; msg.textContent = 'Vaciando…';
+  const r = await fetch('/api/todo', {
+    method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirmar: 'BORRAR TODO' }),
+  }).then(x => x.json()).catch(() => ({ error: 'No se pudo conectar.' }));
+  if (r.error) { msg.className = 'msg err'; msg.textContent = 'Error: ' + r.error; return; }
+  msg.className = 'msg ok'; msg.textContent = `Listo: se borraron ${r.borradas} líneas. Base vacía.`;
+  periodosSel = [];
+  await cargarFiltros();
+  await cargarDatos();
 }
 
 async function salir() {
@@ -450,6 +468,7 @@ async function init() {
   $('#btnSalir').addEventListener('click', salir);
   $('#btnUsuarios').addEventListener('click', abrirUsuarios);
   $('#formUsuario').addEventListener('submit', crearUsuario);
+  $('#btnVaciarTodo').addEventListener('click', vaciarTodo);
 
   const dz = $('#dropzone');
   const input = $('#fileInput');

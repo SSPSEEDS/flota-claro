@@ -35,6 +35,12 @@
         <input type="file" id="excelInput" accept=".xlsx" />
         <div id="excelMsg" class="msg"></div>
       </details>
+      <details class="zona-riesgo" id="zonaRiesgo" hidden>
+        <summary>Vaciar todo</summary>
+        <p class="hint">Borra <strong>todas</strong> las líneas, facturas y tipos de cambio cargados para empezar de cero (los usuarios no se tocan). No se puede deshacer.</p>
+        <button id="btnVaciarTodo" class="boton peligro">Vaciar toda la facturación</button>
+        <div id="vaciarMsg" class="msg"></div>
+      </details>
     </section>
 
     <!-- Panel de usuarios (solo admin) -->

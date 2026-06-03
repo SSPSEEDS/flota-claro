@@ -4,13 +4,13 @@ import multer from 'multer';
 import {
   queryLineas, listarPeriodos, listarLineas, listarPlanes,
   resumenPorPeriodo, getFactura, getFacturaPdf,
-  listarTipoCambio, upsertTipoCambio, eliminarPeriodo,
+  listarTipoCambio, upsertTipoCambio, eliminarPeriodo, vaciarFacturacion,
 } from '../db/db.js';
 import { importarPdf, importarExcel } from '../services/importer.js';
 import { exportarCSV, exportarXLSX } from '../services/export.js';
 import { obtenerOficialUltimoDia } from '../services/dolar.js';
 import { PLANES } from '../planes.js';
-import { requireAuth, puedeEditar, usuarioActual } from '../auth/middleware.js';
+import { requireAuth, puedeEditar, esAdmin, usuarioActual } from '../auth/middleware.js';
 import { error } from '../lib/log.js';
 
 const upload = multer({
@@ -146,6 +146,18 @@ api.delete('/periodo/:periodo', puedeEditar, async (req, res, next) => {
     const borradas = await eliminarPeriodo(periodo);
     res.json({ ok: true, periodo, borradas });
   } catch (e) { error('DELETE /periodo:', e.message); res.status(500).json({ error: e.message }); }
+});
+
+// Vaciar TODA la facturacion para empezar de cero (solo admin).
+// Requiere confirmacion explicita en el body: { confirmar: "BORRAR TODO" }.
+api.delete('/todo', esAdmin, async (req, res, next) => {
+  try {
+    if (req.body?.confirmar !== 'BORRAR TODO') {
+      return res.status(400).json({ error: 'Falta la confirmacion ("BORRAR TODO").' });
+    }
+    const borradas = await vaciarFacturacion();
+    res.json({ ok: true, borradas });
+  } catch (e) { error('DELETE /todo:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // Migracion del Excel historico (una sola vez; admin/editor).

@@ -71,6 +71,28 @@ export async function eliminarPeriodo(periodo) {
   }
 }
 
+/**
+ * Vacia toda la facturacion cargada: todas las lineas, todas las facturas/PDF y los
+ * tipos de cambio. NO toca usuarios ni el catalogo de lineas. Para empezar de cero.
+ * Devuelve la cantidad de lineas eliminadas.
+ */
+export async function vaciarFacturacion() {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const r = await client.query('DELETE FROM lineas');
+    await client.query('DELETE FROM facturas');
+    await client.query('DELETE FROM tipo_cambio');
+    await client.query('COMMIT');
+    return r.rowCount;
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 /** Inserta o actualiza la cabecera de una factura (clave: periodo), incluido el PDF. */
 export async function upsertFactura(f) {
   await query(`

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { newDb } from 'pg-mem';
 import { setPool } from '../src/db/pool.js';
-import { migrar, queryLineas, resumenPorPeriodo, getFacturaPdf, eliminarPeriodo, listarPeriodos } from '../src/db/db.js';
+import { migrar, queryLineas, resumenPorPeriodo, getFacturaPdf, eliminarPeriodo, listarPeriodos, vaciarFacturacion } from '../src/db/db.js';
 import { importarPdf, importarExcel } from '../src/services/importer.js';
 import { crearUsuario, verificarCredenciales } from '../src/auth/users.js';
 
@@ -72,4 +72,10 @@ test('eliminarPeriodo borra todas las lineas del mes y su factura', async (t) =>
   assert.equal((await queryLineas({ periodo: '2026-03' })).length, 0);
   assert.equal(await getFacturaPdf('2026-03'), null);
   assert.ok(!(await listarPeriodos()).includes('2026-03'));
+});
+
+test('vaciarFacturacion deja la base sin periodos', async () => {
+  await vaciarFacturacion();
+  assert.equal((await listarPeriodos()).length, 0);
+  assert.equal((await resumenPorPeriodo()).length, 0);
 });
