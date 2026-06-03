@@ -17,7 +17,7 @@
       DIF MES ANTERIOR. El TC se autocompleta con el **dólar oficial** (ArgentinaDatos) del último
       día del mes y es editable a mano (tabla `tipo_cambio`, rutas `/api/tc`).
 - [x] Columna **Plan** muestra los GB al lado del código (ej: `CC10R (2 GB)`), en tabla y export
-- [x] **Sin decimales**: todos los montos se muestran y exportan redondeados al peso entero
+- [x] Montos con **2 decimales** ($1.234,56); el % de DIF MES ANTERIOR con 2 decimales y coma (`+5,57%`)
 - [x] Filtro de **Mes con selección múltiple** (comparar varios meses, ej: este mes + el anterior)
 - [x] Botón de vista renombrado a **"Vista por mes"** (sin "pivote"); meses legibles (ej: `Abr 2026`)
 - [x] **Rediseño visual**: cabecera con degradé, tarjetas con sombra, resumen con cifras destacadas

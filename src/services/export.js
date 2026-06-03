@@ -1,11 +1,8 @@
 // Exportacion de lineas a CSV o XLSX, con IVA opcional.
 import xlsx from 'xlsx';
 import { queryLineas } from '../db/db.js';
+import { redondear2 } from '../lib/money.js';
 import { etiquetaPlan } from '../planes.js';
-
-// Sin decimales: los montos se exportan redondeados al peso entero.
-const redondear = (v) => (v === null || v === undefined || v === '' ? v : Math.round(Number(v)));
-const CAMPOS_MONTO = new Set(['abono', 'bonificaciones', 'datos', 'otros', 'total']);
 
 const COLUMNAS = [
   ['periodo', 'Periodo'],
@@ -29,14 +26,10 @@ export async function armarFilas(filtros = {}, { conIva = false, alicuota = IVA_
   const lineas = await queryLineas(filtros);
   return lineas.map(l => {
     const fila = {};
-    for (const [campo, titulo] of COLUMNAS) {
-      if (campo === 'plan') fila[titulo] = etiquetaPlan(l[campo]);
-      else if (CAMPOS_MONTO.has(campo)) fila[titulo] = redondear(l[campo]);
-      else fila[titulo] = l[campo];
-    }
+    for (const [campo, titulo] of COLUMNAS) fila[titulo] = campo === 'plan' ? etiquetaPlan(l[campo]) : l[campo];
     if (conIva) {
-      fila[`IVA ${Math.round(alicuota * 100)}%`] = redondear((l.total ?? 0) * alicuota);
-      fila['Total con IVA'] = redondear((l.total ?? 0) * (1 + alicuota));
+      fila[`IVA ${Math.round(alicuota * 100)}%`] = redondear2((l.total ?? 0) * alicuota);
+      fila['Total con IVA'] = redondear2((l.total ?? 0) * (1 + alicuota));
     }
     return fila;
   });

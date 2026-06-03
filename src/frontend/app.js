@@ -1,8 +1,8 @@
 // Frontend de la Flota Claro (JS vanilla).
 const $ = (sel) => document.querySelector(sel);
-// Sin decimales: los montos se muestran redondeados al peso entero.
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
-const money = (v) => (v === null || v === undefined || v === '' ? '' : fmt.format(Math.round(v)));
+// Montos con 2 decimales, formato argentino ($1.234,56).
+const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (v) => (v === null || v === undefined || v === '' ? '' : fmt.format(v));
 
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 // "2026-04" -> "Abr 2026"
@@ -25,7 +25,8 @@ function etiquetaPlan(plan) {
   const info = PLANES[String(plan).trim().toUpperCase()];
   return info ? `${plan} (${info.gb} GB)` : plan;
 }
-const pct = (v) => (v === null || v === undefined ? '' : (v >= 0 ? '+' : '') + (v * 100).toFixed(1) + '%');
+// Porcentaje con 2 decimales y coma decimal: 0.0557 -> "+5,57%".
+const pct = (v) => (v === null || v === undefined ? '' : (v >= 0 ? '+' : '') + (v * 100).toFixed(2).replace('.', ',') + '%');
 
 // --- Filtros y carga ---
 function filtrosActuales() {
@@ -110,7 +111,7 @@ function pintarResumen({ registros, total, extra = '', usd = null }) {
   $('#resumen').innerHTML = `<div class="stats">${cards.join('')}</div>${extra ? `<div class="resumen-extra">${extra}</div>` : ''}`;
 }
 
-const dolar = (v) => (v === null || v === undefined ? '' : 'US$ ' + Math.round(v).toLocaleString('es-AR'));
+const dolar = (v) => (v === null || v === undefined ? '' : 'US$ ' + v.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
 // --- Vista tabla detallada ---
 function renderTabla(lineas) {

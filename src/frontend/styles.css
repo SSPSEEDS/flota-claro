@@ -96,8 +96,9 @@ main { max-width: 1240px; margin: 22px auto; padding: 0 18px; }
 .dropzone.hover { border-color: var(--rojo); background: var(--rojo-claro); color: var(--rojo); }
 .dropzone p { margin: 0; }
 
-.excel-migra { margin-top: 14px; font-size: 14px; }
-.excel-migra summary { cursor: pointer; color: var(--rojo); }
+.excel-migra { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--borde); font-size: 13px; }
+.excel-migra summary { cursor: pointer; color: var(--texto-2); width: fit-content; list-style-position: inside; }
+.excel-migra summary:hover { color: var(--rojo); }
 .excel-migra .hint { color: var(--texto-2); font-size: 13px; }
 #formUsuario { margin-top: 12px; }
 #formUsuario button { align-self: end; }
