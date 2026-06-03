@@ -1,12 +1,23 @@
 // Frontend de la Flota Claro (JS vanilla).
 const $ = (sel) => document.querySelector(sel);
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 2 });
-const money = (v) => (v === null || v === undefined || v === '' ? '' : fmt.format(v));
+// Sin decimales: los montos se muestran redondeados al peso entero.
+const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+const money = (v) => (v === null || v === undefined || v === '' ? '' : fmt.format(Math.round(v)));
 
-let vista = 'tabla'; // 'tabla' | 'pivote'
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+// "2026-04" -> "Abr 2026"
+function mesLabel(p) {
+  const [a, m] = String(p).split('-');
+  const mm = MESES[Number(m) - 1] || m;
+  return `${mm.charAt(0).toUpperCase()}${mm.slice(1)} ${a}`;
+}
+
+let vista = 'tabla';   // 'tabla' | 'pivote'
 let PLANES = {};       // catalogo codigo -> { gb, nombre } (se carga al iniciar)
 let TC = {};           // tipo de cambio por periodo: { periodo: { tc, fuente } }
 let puedeEditarRol = false;
+let periodosSel = [];  // meses seleccionados (vacio = todos)
+let periodosDisp = []; // todos los periodos disponibles
 
 // "CC10R" -> "CC10R (2 GB)". Si no se reconoce el codigo, lo deja igual.
 function etiquetaPlan(plan) {
@@ -19,12 +30,11 @@ const pct = (v) => (v === null || v === undefined ? '' : (v >= 0 ? '+' : '') + (
 // --- Filtros y carga ---
 function filtrosActuales() {
   const f = {};
-  const periodo = $('#fPeriodo').value;
+  if (periodosSel.length) f.periodo = periodosSel.join(',');
   const linea = $('#fLinea').value;
   const plan = $('#fPlan').value;
   const origen = $('#fOrigen').value;
   const buscar = $('#fBuscar').value.trim();
-  if (periodo) f.periodo = periodo;
   if (linea) f.linea = linea;
   if (plan) f.plan = plan;
   if (origen) f.origen = origen;
@@ -38,15 +48,42 @@ function queryString(f) {
 
 async function cargarFiltros() {
   const r = await fetch('/api/filtros').then(x => x.json());
-  const selP = $('#fPeriodo');
-  selP.innerHTML = '<option value="">Todos</option>' +
-    r.periodos.map(p => `<option value="${p}">${p}</option>`).join('');
+  periodosDisp = r.periodos;
+  construirMesesMulti();
   const selL = $('#fLinea');
   selL.innerHTML = '<option value="">Todas</option>' +
     r.lineas.map(l => `<option value="${l.linea}">${(l.usuario || '(sin nombre)')} — ${l.linea}</option>`).join('');
   const selPlan = $('#fPlan');
   selPlan.innerHTML = '<option value="">Todos</option>' +
     r.planes.map(p => `<option value="${p}">${etiquetaPlan(p)}</option>`).join('');
+}
+
+// --- Multi-selector de meses (varios a la vez) ---
+function construirMesesMulti() {
+  const pop = $('#msPeriodoPop');
+  // Saca de la seleccion los periodos que ya no existen.
+  periodosSel = periodosSel.filter(p => periodosDisp.includes(p));
+  pop.innerHTML = periodosDisp.length
+    ? periodosDisp.map(p =>
+        `<label class="ms-item"><input type="checkbox" value="${p}" ${periodosSel.includes(p) ? 'checked' : ''}/> ${mesLabel(p)}</label>`
+      ).join('')
+    : '<div class="ms-vacio">Sin meses cargados</div>';
+  pop.querySelectorAll('input[type=checkbox]').forEach(chk =>
+    chk.addEventListener('change', () => {
+      if (chk.checked) periodosSel.push(chk.value);
+      else periodosSel = periodosSel.filter(v => v !== chk.value);
+      actualizarMesesBtn();
+      cargarDatos();
+    }));
+  actualizarMesesBtn();
+}
+
+function actualizarMesesBtn() {
+  const btn = $('#msPeriodoBtn');
+  if (!periodosSel.length) btn.textContent = 'Todos los meses';
+  else if (periodosSel.length === 1) btn.textContent = mesLabel(periodosSel[0]);
+  else btn.textContent = `${periodosSel.length} meses elegidos`;
+  btn.classList.toggle('activo', periodosSel.length > 0);
 }
 
 async function cargarDatos() {
@@ -63,6 +100,18 @@ function actualizarExport(f) {
   $('#btnXlsx').href = '/api/export?formato=xlsx&' + queryString(f) + conIva;
 }
 
+// Pinta el bloque de resumen (cifras destacadas) arriba de la tabla.
+function pintarResumen({ registros, total, extra = '', usd = null }) {
+  const cards = [
+    `<div class="stat"><span class="stat-lbl">Registros</span><span class="stat-val">${registros}</span></div>`,
+    `<div class="stat stat-total"><span class="stat-lbl">Total sin IVA</span><span class="stat-val">${money(total)}</span></div>`,
+  ];
+  if (usd !== null) cards.push(`<div class="stat"><span class="stat-lbl">Total USD</span><span class="stat-val">${dolar(usd)}</span></div>`);
+  $('#resumen').innerHTML = `<div class="stats">${cards.join('')}</div>${extra ? `<div class="resumen-extra">${extra}</div>` : ''}`;
+}
+
+const dolar = (v) => (v === null || v === undefined ? '' : 'US$ ' + Math.round(v).toLocaleString('es-AR'));
+
 // --- Vista tabla detallada ---
 function renderTabla(lineas) {
   if (!lineas.length) { mostrarVacio(); return; }
@@ -75,8 +124,9 @@ function renderTabla(lineas) {
   const filas = lineas.map(l => {
     total += l.total || 0;
     return '<tr>' + cols.map(([campo, , cls]) => {
-      const v = campo === 'plan' ? etiquetaPlan(l[campo]) : l[campo];
-      if (campo === 'origen') return `<td class="txt"><span class="badge ${v}">${v}</span></td>`;
+      let v = campo === 'plan' ? etiquetaPlan(l[campo]) : l[campo];
+      if (campo === 'periodo') v = mesLabel(l[campo]);
+      if (campo === 'origen') return `<td class="txt"><span class="badge ${l[campo]}">${l[campo]}</span></td>`;
       if (cls === 'txt') return `<td class="txt">${v ?? ''}</td>`;
       const neg = typeof v === 'number' && v < 0 ? ' neg' : '';
       return `<td class="${neg}">${money(v)}</td>`;
@@ -84,13 +134,13 @@ function renderTabla(lineas) {
   }).join('');
 
   const totalRow = `<tr class="total-row"><td class="txt" colspan="8">TOTAL (${lineas.length} líneas)</td><td>${money(total)}</td><td></td></tr>`;
-  $('#resumen').innerHTML = `Mostrando <b>${lineas.length}</b> registros · Total sin IVA: <b>${money(total)}</b>`;
+  pintarResumen({ registros: lineas.length, total });
   $('#tablaWrap').innerHTML =
     `<table><thead><tr>${cols.map(c => `<th>${c[1]}</th>`).join('')}</tr></thead>` +
     `<tbody>${filas}${totalRow}</tbody></table>`;
 }
 
-// --- Vista pivote (línea x mes), como el Excel original ---
+// --- Vista por mes (línea x mes), como el Excel original ---
 // Filas superiores tipo planilla: TOTAL, TC (dólar), TOTAL USD y DIF MES ANTERIOR.
 async function renderPivote(lineas) {
   if (!lineas.length) { mostrarVacio(); return; }
@@ -114,13 +164,12 @@ async function renderPivote(lineas) {
       if (typeof v === 'number') totalMes[p] += v;
       return `<td>${money(v)}</td>`;
     }).join('');
-    return `<tr><td class="txt">${e.usuario || ''}</td><td class="txt">${linea}</td>${celdas}</tr>`;
+    return `<tr><td class="txt">${e.usuario || ''}</td><td class="txt linea-col">${linea}</td>${celdas}</tr>`;
   }).join('');
 
   // Helpers de las filas resumen.
   const tcDe = (p) => (TC[p] ? Number(TC[p].tc) : null);
   const usdDe = (p) => { const t = tcDe(p); return t ? totalMes[p] / t : null; };
-  const dolar = (v) => (v === null ? '' : 'US$ ' + v.toLocaleString('es-AR', { maximumFractionDigits: 0 }));
 
   const filaTotal = `<tr class="sum total-row"><td class="txt" colspan="2">TOTAL</td>` +
     periodos.map(p => `<td>${money(totalMes[p])}</td>`).join('') + '</tr>';
@@ -146,11 +195,16 @@ async function renderPivote(lineas) {
     }).join('') + '</tr>';
 
   const btnAuto = puedeEditarRol
-    ? ' · <button id="btnTcAuto" class="link">Completar TC faltantes (dólar oficial)</button>'
+    ? `<button id="btnTcAuto" class="link">Completar TC faltantes (dólar oficial)</button>`
     : '';
-  $('#resumen').innerHTML = `Vista por mes · <b>${porLinea.size}</b> líneas × <b>${periodos.length}</b> meses${btnAuto}`;
+  const totalGeneral = periodos.reduce((s, p) => s + totalMes[p], 0);
+  pintarResumen({
+    registros: `${porLinea.size} × ${periodos.length} meses`,
+    total: totalGeneral,
+    extra: btnAuto,
+  });
   $('#tablaWrap').innerHTML =
-    `<table class="pivote"><thead><tr><th>Usuario</th><th>Línea</th>${periodos.map(p => `<th>${p}</th>`).join('')}</tr></thead>` +
+    `<table class="pivote"><thead><tr><th>Usuario</th><th>Línea</th>${periodos.map(p => `<th>${mesLabel(p)}</th>`).join('')}</tr></thead>` +
     `<tbody>${filaTotal}${filaTc}${filaUsd}${filaDif}${filasLineas}</tbody></table>`;
 
   // Eventos de edición del TC (solo editores).
@@ -205,7 +259,8 @@ async function subirPdf(file) {
     msg.textContent = `Factura ${r.factura} importada — período ${r.periodo}, ${r.cantidad} líneas` +
       (r.cuadra ? ' ✓ (totales verificados).' : ' ⚠ los totales no coinciden, revisar.');
     await cargarFiltros();
-    $('#fPeriodo').value = r.periodo;
+    periodosSel = [r.periodo];
+    construirMesesMulti();
     await cargarDatos();
   } catch (e) {
     msg.className = 'msg err';
@@ -320,11 +375,21 @@ async function init() {
     $('#excelInput').addEventListener('change', (e) => subirExcel(e.target.files[0]));
   }
 
-  ['#fPeriodo', '#fLinea', '#fPlan', '#fOrigen'].forEach(s => $(s).addEventListener('change', cargarDatos));
+  // Multi-selector de meses: abrir/cerrar el panel.
+  const msBtn = $('#msPeriodoBtn');
+  const msPop = $('#msPeriodoPop');
+  msBtn.addEventListener('click', (e) => { e.stopPropagation(); msPop.hidden = !msPop.hidden; });
+  document.addEventListener('click', (e) => {
+    if (!$('#msPeriodo').contains(e.target)) msPop.hidden = true;
+  });
+
+  ['#fLinea', '#fPlan', '#fOrigen'].forEach(s => $(s).addEventListener('change', cargarDatos));
   $('#fBuscar').addEventListener('input', debounce(cargarDatos, 300));
   $('#chkIva').addEventListener('change', () => actualizarExport(filtrosActuales()));
   $('#btnLimpiar').addEventListener('click', () => {
-    ['#fPeriodo', '#fLinea', '#fPlan', '#fOrigen'].forEach(s => $(s).value = '');
+    periodosSel = [];
+    construirMesesMulti();
+    ['#fLinea', '#fPlan', '#fOrigen'].forEach(s => $(s).value = '');
     $('#fBuscar').value = '';
     cargarDatos();
   });

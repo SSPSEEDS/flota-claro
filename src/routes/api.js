@@ -76,7 +76,7 @@ api.get('/export', async (req, res, next) => {
     const formato = (req.query.formato || 'csv').toLowerCase();
     const conIva = req.query.iva === '1' || req.query.iva === 'true';
     const filtros = filtrosDeQuery(req.query);
-    const etiqueta = filtros.periodo || 'todo';
+    const etiqueta = (filtros.periodo || 'todo').replace(/,/g, '_');
 
     if (formato === 'xlsx') {
       const buf = await exportarXLSX(filtros, { conIva });

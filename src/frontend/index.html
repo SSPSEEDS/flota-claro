@@ -8,12 +8,12 @@
 </head>
 <body>
   <header>
-    <div>
+    <div class="brand">
       <h1>Flota Claro</h1>
       <span class="sub">Southern Seeds Production SA — 38 líneas móviles</span>
     </div>
     <div class="userbar">
-      <span id="userInfo"></span>
+      <span id="userInfo" class="user-chip"></span>
       <button id="btnUsuarios" class="link" hidden>Usuarios</button>
       <button id="btnSalir" class="link">Salir</button>
     </div>
@@ -22,9 +22,9 @@
   <main>
     <!-- Importar factura (solo admin/editor) -->
     <section class="card" id="importar" hidden>
-      <h2>Importar factura PDF</h2>
+      <h2><span class="ico">📄</span> Importar factura PDF</h2>
       <div id="dropzone" class="dropzone">
-        <p>Arrastrá acá el PDF de la factura Claro<br /><small>o hacé clic para elegirlo</small></p>
+        <p><strong>Arrastrá acá el PDF de la factura Claro</strong><br /><small>o hacé clic para elegirlo</small></p>
         <input type="file" id="fileInput" accept="application/pdf" hidden />
       </div>
       <div id="importMsg" class="msg"></div>
@@ -38,7 +38,7 @@
 
     <!-- Panel de usuarios (solo admin) -->
     <section class="card" id="panelUsuarios" hidden>
-      <h2>Usuarios</h2>
+      <h2><span class="ico">👥</span> Usuarios</h2>
       <div id="listaUsuarios"></div>
       <form id="formUsuario" class="filtros" autocomplete="off">
         <label>Usuario <input type="text" id="nuevoUser" required /></label>
@@ -58,10 +58,13 @@
 
     <!-- Filtros -->
     <section class="card">
-      <h2>Filtros</h2>
+      <h2><span class="ico">🔎</span> Filtros</h2>
       <div class="filtros">
         <label>Mes
-          <select id="fPeriodo"><option value="">Todos</option></select>
+          <div class="multi" id="msPeriodo">
+            <button type="button" class="multi-btn" id="msPeriodoBtn">Todos los meses</button>
+            <div class="multi-pop" id="msPeriodoPop" hidden></div>
+          </div>
         </label>
         <label>Usuario / Línea
           <select id="fLinea"><option value="">Todas</option></select>
@@ -81,19 +84,21 @@
         </label>
         <button id="btnLimpiar" class="secundario">Limpiar</button>
       </div>
-      <div class="vista-toggle">
-        <button id="btnTabla" class="activo">Tabla detallada</button>
-        <button id="btnPivote">Vista por mes (pivote)</button>
-        <span class="export">
+      <div class="barra-acciones">
+        <div class="vista-toggle">
+          <button id="btnTabla" class="activo">Tabla detallada</button>
+          <button id="btnPivote">Vista por mes</button>
+        </div>
+        <div class="export">
           <a id="btnCsv" class="boton">Exportar CSV</a>
           <a id="btnXlsx" class="boton">Exportar Excel</a>
           <label class="iva"><input type="checkbox" id="chkIva" /> con IVA 21%</label>
-        </span>
+        </div>
       </div>
     </section>
 
     <!-- Resultados -->
-    <section class="card">
+    <section class="card resultados">
       <div id="resumen" class="resumen"></div>
       <div id="tablaWrap" class="tabla-wrap"></div>
     </section>

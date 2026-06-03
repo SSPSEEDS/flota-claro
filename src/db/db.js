@@ -96,7 +96,16 @@ export async function queryLineas(filtros = {}) {
   const params = [];
   const add = (cond, val) => { params.push(val); where.push(cond.replace('?', `$${params.length}`)); };
 
-  if (filtros.periodo) add('periodo = ?', filtros.periodo);
+  if (filtros.periodo) {
+    // Acepta uno o varios periodos separados por coma (ej: "2026-04,2026-03").
+    const ps = String(filtros.periodo).split(',').map(s => s.trim()).filter(Boolean);
+    if (ps.length === 1) {
+      add('periodo = ?', ps[0]);
+    } else if (ps.length > 1) {
+      const marks = ps.map(p => { params.push(p); return `$${params.length}`; });
+      where.push(`periodo IN (${marks.join(',')})`);
+    }
+  }
   if (filtros.linea) add('linea = ?', String(filtros.linea));
   if (filtros.usuario) add('usuario ILIKE ?', `%${filtros.usuario}%`);
   if (filtros.plan) add('plan = ?', filtros.plan);
