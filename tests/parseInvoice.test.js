@@ -36,7 +36,9 @@ test('parseInvoice extrae 38 lineas y el total cuadra con TOTAL LINEAS', async (
     assert.equal(r.lineas.length, 38);
     assert.equal(r.validacion.cuadra, true);
     assert.equal(r.cabecera.factura, '1331-02276863');
-    assert.equal(r.cabecera.periodo, '2026-04');
+    // Fecha de factura 08/04/2026 -> el consumo facturado es del mes anterior (marzo).
+    assert.equal(r.cabecera.fecha, '2026-04-08');
+    assert.equal(r.cabecera.periodo, '2026-03');
   } catch (e) {
     if (e.code === 'ENOENT') return t.skip('PDF de ejemplo no disponible');
     throw e;

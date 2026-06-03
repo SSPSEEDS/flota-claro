@@ -29,6 +29,16 @@ function parseFecha(ddmmyyyy) {
   return { iso: `${yyyy}-${mm}-${dd}`, periodo: `${yyyy}-${mm}` };
 }
 
+/** Resta un mes a un periodo "YYYY-MM" (maneja el cambio de anio). "2026-01" -> "2025-12". */
+function periodoMesAnterior(periodo) {
+  const m = /^(\d{4})-(\d{2})$/.exec(periodo || '');
+  if (!m) return periodo;
+  let anio = Number(m[1]);
+  let mes = Number(m[2]) - 1;
+  if (mes < 1) { mes = 12; anio -= 1; }
+  return `${anio}-${String(mes).padStart(2, '0')}`;
+}
+
 /** Busca el primer monto que sigue a una etiqueta dada en el texto. */
 function montoTrasEtiqueta(texto, etiqueta) {
   const re = new RegExp(etiqueta + '\\s*:?\\s*(-?\\$[\\d.]+,\\d{2})');
@@ -41,8 +51,13 @@ export function parseCabecera(texto) {
   const factura = /Factura N[°º]\s*([\d-]+)/.exec(texto)?.[1] ?? null;
   const fechaTxt = /Fecha de Factura\s*(\d{2}\/\d{2}\/\d{4})/.exec(texto)?.[1] ?? null;
   const vtoTxt = /Vencimiento:\s*(\d{2}\/\d{2}\/\d{4})/.exec(texto)?.[1] ?? null;
-  const { iso: fecha, periodo } = parseFecha(fechaTxt);
+  const { iso: fecha, periodo: periodoFactura } = parseFecha(fechaTxt);
   const { iso: vencimiento } = parseFecha(vtoTxt);
+  // La factura se emite a comienzos del mes siguiente al consumo: la fechada el
+  // 08/05 (periodo facturado 09/04 al 08/05) corresponde al consumo de ABRIL.
+  // Registramos el periodo como el mes anterior a la fecha de factura, que es lo
+  // que el negocio considera "el mes" de la factura.
+  const periodo = periodoMesAnterior(periodoFactura);
 
   // IVA 21.0% (Neto gravado $ 273465.86) $57.427,83  /  IVA 27.0% (...) $126.212,39
   // El neto gravado va en parentesis y usa formato ingles; saltamos hasta el ")".

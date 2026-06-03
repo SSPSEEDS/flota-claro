@@ -10,7 +10,7 @@ a diferencia del Excel que era "ancho" (una columna por mes).
 | Campo | Tipo | Descripción |
 |---|---|---|
 | `id` | INTEGER PK | autoincremento |
-| `periodo` | TEXT | `YYYY-MM` |
+| `periodo` | TEXT | `YYYY-MM` — mes de **consumo** (ver nota abajo) |
 | `factura` | TEXT | nº factura (null en histórico Excel) |
 | `linea` | TEXT | número de línea (10 dígitos) — clave de reconciliación |
 | `usuario` | TEXT | titular según la fuente |
@@ -26,6 +26,11 @@ a diferencia del Excel que era "ancho" (una columna por mes).
 
 Restricción `UNIQUE(periodo, linea, origen)`. Reimportar un mes (mismo origen) **reemplaza** las filas
 de ese período (transacción: borra + inserta).
+
+> **Período = mes de consumo, no el de la fecha de factura.** La factura se emite a comienzos del mes
+> siguiente al consumo (ej.: fechada el 08/05, "Período Facturado desde 09/04 hasta 08/05" → corresponde
+> a **abril**). Por eso el parser registra el período como el **mes anterior a la fecha de factura**, para
+> que empalme con el histórico del Excel (que llega hasta `2026-03`).
 
 ### Mapeo desde el PDF (DETALLE DE ITEMS POR LINEA)
 
