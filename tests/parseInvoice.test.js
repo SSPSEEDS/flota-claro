@@ -30,6 +30,15 @@ test('parseFilaLinea separa columnas y aplica la ecuacion total = abono+bonif+da
   assert.ok(Math.abs(suma - r.total) < 0.01);
 });
 
+test('parseFilaLinea reconoce el formato de plan viejo (1 letra + 3 digitos, ej A060C)', () => {
+  const fila = '1169111584REDDY, EDUARDO ALBERTO    A060C$22.436,58$47,07-$11.241,84.......$11.241,81BUENOS AIRES';
+  const r = parseFilaLinea(fila);
+  assert.equal(r.linea, '1169111584');
+  assert.equal(r.usuario, 'REDDY, EDUARDO ALBERTO');
+  assert.equal(r.plan, 'A060C');
+  assert.equal(r.total, 11241.81);
+});
+
 test('parseInvoice extrae 38 lineas y el total cuadra con TOTAL LINEAS', async (t) => {
   try {
     const r = await parseInvoice(PDF);

@@ -9,8 +9,9 @@ const require = createRequire(import.meta.url);
 // Se importa el archivo interno para evitar el bloque de debug del index de pdf-parse.
 const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 
-// Codigo de plan Claro: 2 letras + 2 digitos + 1 letra (CC10R, CC14C, PC91R, PC96C...).
-const PLAN_RE = /[A-Z]{2}\d{2}[A-Z]/;
+// Codigo de plan Claro: letras + digitos + 1 letra. Cubre el formato actual
+// (CC10R, CC14C, PC91R: 2 letras + 2 digitos) y el viejo (A060C: 1 letra + 3 digitos).
+const PLAN_RE = /[A-Z]{1,2}\d{2,3}[A-Z]/;
 // Un monto argentino, con signo opcional: $26.060,00  -$15.636,00
 const MONTO_TOKEN_RE = /-?\$[\d.]+,\d{2}/g;
 
@@ -39,6 +40,16 @@ function periodoMesAnterior(periodo) {
   return `${anio}-${String(mes).padStart(2, '0')}`;
 }
 
+/**
+ * Deriva el periodo de consumo desde "Período Facturado desde DD/MM/YYYY hasta ...".
+ * Es la fuente mas confiable (esta en todos los formatos de factura) y equivale al
+ * mes anterior a la fecha de factura. Devuelve "YYYY-MM" del "desde" o null.
+ */
+function periodoDesdeFacturado(texto) {
+  const m = /Per[ií]odo Facturado desde\s*(\d{2})\/(\d{2})\/(\d{4})/i.exec(texto);
+  return m ? `${m[3]}-${m[2]}` : null;
+}
+
 /** Busca el primer monto que sigue a una etiqueta dada en el texto. */
 function montoTrasEtiqueta(texto, etiqueta) {
   const re = new RegExp(etiqueta + '\\s*:?\\s*(-?\\$[\\d.]+,\\d{2})');
@@ -48,16 +59,18 @@ function montoTrasEtiqueta(texto, etiqueta) {
 
 /** Parsea la cabecera de la factura. */
 export function parseCabecera(texto) {
-  const factura = /Factura N[°º]\s*([\d-]+)/.exec(texto)?.[1] ?? null;
-  const fechaTxt = /Fecha de Factura\s*(\d{2}\/\d{2}\/\d{4})/.exec(texto)?.[1] ?? null;
+  // Nº de factura: formato nuevo "Factura N° 1331-..." y viejo "Factura Nro. 1331-...".
+  const factura = /Factura\s+N(?:[°ºo]|ro\.?)\s*([\d-]+)/i.exec(texto)?.[1] ?? null;
+  // Fecha de factura: "Fecha de Factura", "Fecha de Emisión Factura:" o "Fecha Factura:".
+  const fechaTxt = /Fecha(?:\s+de)?(?:\s+Emisi[oó]n)?\s+Factura\s*:?\s*(\d{2}\/\d{2}\/\d{4})/i.exec(texto)?.[1] ?? null;
   const vtoTxt = /Vencimiento:\s*(\d{2}\/\d{2}\/\d{4})/.exec(texto)?.[1] ?? null;
   const { iso: fecha, periodo: periodoFactura } = parseFecha(fechaTxt);
   const { iso: vencimiento } = parseFecha(vtoTxt);
   // La factura se emite a comienzos del mes siguiente al consumo: la fechada el
   // 08/05 (periodo facturado 09/04 al 08/05) corresponde al consumo de ABRIL.
-  // Registramos el periodo como el mes anterior a la fecha de factura, que es lo
-  // que el negocio considera "el mes" de la factura.
-  const periodo = periodoMesAnterior(periodoFactura);
+  // Usamos el mes del "Período Facturado desde" (mas confiable y presente en todos
+  // los formatos); si no estuviera, caemos al mes anterior a la fecha de factura.
+  const periodo = periodoDesdeFacturado(texto) || periodoMesAnterior(periodoFactura);
 
   // IVA 21.0% (Neto gravado $ 273465.86) $57.427,83  /  IVA 27.0% (...) $126.212,39
   // El neto gravado va en parentesis y usa formato ingles; saltamos hasta el ")".
