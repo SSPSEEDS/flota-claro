@@ -93,6 +93,25 @@ async function cargarDatos() {
   actualizarExport(f);
   if (vista === 'tabla') renderTabla(lineas);
   else await renderPivote(lineas);
+  montarScrollSuperior();
+}
+
+// Barra de scroll horizontal arriba de la tabla (sincronizada con la de abajo),
+// para correr de costado sin tener que bajar al final de la planilla.
+function montarScrollSuperior() {
+  const wrap = $('#tablaWrap');
+  const bar = $('#scrollTop');
+  const tabla = wrap.querySelector('table');
+  if (!tabla) { bar.hidden = true; return; }
+  requestAnimationFrame(() => {
+    const ancho = tabla.scrollWidth;
+    if (ancho <= wrap.clientWidth + 1) { bar.hidden = true; return; }
+    bar.hidden = false;
+    bar.firstElementChild.style.width = ancho + 'px';
+    bar.scrollLeft = wrap.scrollLeft;
+    bar.onscroll = () => { wrap.scrollLeft = bar.scrollLeft; };
+    wrap.onscroll = () => { bar.scrollLeft = wrap.scrollLeft; };
+  });
 }
 
 function actualizarExport(f) {

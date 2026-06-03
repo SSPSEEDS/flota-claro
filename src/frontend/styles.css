@@ -85,13 +85,15 @@ main { max-width: 1240px; margin: 22px auto; padding: 0 18px; }
 .dropzone {
   border: 2px dashed var(--borde-2);
   border-radius: 10px;
-  padding: 30px;
+  padding: 16px 18px;
   text-align: center;
   color: var(--texto-2);
   cursor: pointer;
   transition: .15s;
   background: var(--gris-2);
+  font-size: 13px;
 }
+.dropzone p strong { font-size: 14px; }
 .dropzone:hover { border-color: var(--rojo); }
 .dropzone.hover { border-color: var(--rojo); background: var(--rojo-claro); color: var(--rojo); }
 .dropzone p { margin: 0; }
@@ -171,6 +173,9 @@ main { max-width: 1240px; margin: 22px auto; padding: 0 18px; }
 .resumen-extra .link { color: var(--rojo); }
 
 /* ---------- Tablas ---------- */
+/* Barra de scroll horizontal arriba de la tabla (espejo de la de abajo). */
+.scroll-top { overflow-x: auto; overflow-y: hidden; margin-bottom: 6px; }
+.scroll-top > div { height: 1px; }
 .tabla-wrap { overflow-x: auto; border: 1px solid var(--borde); border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { padding: 9px 11px; border-bottom: 1px solid var(--borde); text-align: right; white-space: nowrap; }
