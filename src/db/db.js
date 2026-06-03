@@ -50,6 +50,27 @@ export async function reemplazarPeriodo({ periodo, origen, lineas, factura = nul
   return lineas.length;
 }
 
+/**
+ * Borra por completo un periodo: todas sus lineas (cualquier origen) y la cabecera
+ * de factura con su PDF. Util para corregir un mes cargado bajo el periodo equivocado.
+ * Devuelve la cantidad de lineas eliminadas.
+ */
+export async function eliminarPeriodo(periodo) {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+    const r = await client.query('DELETE FROM lineas WHERE periodo = $1', [periodo]);
+    await client.query('DELETE FROM facturas WHERE periodo = $1', [periodo]);
+    await client.query('COMMIT');
+    return r.rowCount;
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
 /** Inserta o actualiza la cabecera de una factura (clave: periodo), incluido el PDF. */
 export async function upsertFactura(f) {
   await query(`

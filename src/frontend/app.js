@@ -277,17 +277,33 @@ async function renderPivote(lineas) {
     total: totalGeneral,
     extra: btnAuto,
   });
+  const thMes = (p) => `<th>${mesLabel(p)}` +
+    (puedeEditarRol ? `<button class="th-del" data-del-periodo="${p}" title="Borrar este mes">✕</button>` : '') +
+    '</th>';
   $('#tablaWrap').innerHTML =
-    `<table class="pivote"><thead><tr><th>Usuario</th><th>Línea</th>${periodos.map(p => `<th>${mesLabel(p)}</th>`).join('')}</tr></thead>` +
+    `<table class="pivote"><thead><tr><th>Usuario</th><th>Línea</th>${periodos.map(thMes).join('')}</tr></thead>` +
     `<tbody>${filaTotal}${filaTc}${filaUsd}${filaDif}${filasLineas}</tbody></table>`;
 
-  // Eventos de edición del TC (solo editores).
+  // Eventos de edición del TC y borrado de meses (solo editores).
   if (puedeEditarRol) {
     $('#tablaWrap').querySelectorAll('.tc-cell input').forEach(inp =>
       inp.addEventListener('change', () => guardarTc(inp.dataset.periodo, inp.value)));
+    $('#tablaWrap').querySelectorAll('[data-del-periodo]').forEach(b =>
+      b.addEventListener('click', () => eliminarMes(b.dataset.delPeriodo)));
     const ba = $('#btnTcAuto');
     if (ba) ba.addEventListener('click', () => completarTcAuto(periodos));
   }
+}
+
+// Borra todos los datos de un mes (corregir un período mal cargado). Solo editores.
+async function eliminarMes(periodo) {
+  if (!confirm(`¿Borrar TODOS los datos del mes ${mesLabel(periodo)}?\n\nSe eliminan las líneas y la factura PDF de ese período. No se puede deshacer.`)) return;
+  const r = await fetch('/api/periodo/' + periodo, { method: 'DELETE' })
+    .then(x => x.json()).catch(() => ({ error: 'No se pudo conectar.' }));
+  if (r.error) { alert('Error al borrar: ' + r.error); return; }
+  periodosSel = periodosSel.filter(p => p !== periodo);
+  await cargarFiltros();
+  await cargarDatos();
 }
 
 // Guarda el TC de un mes (edición manual) y refresca la vista.

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { newDb } from 'pg-mem';
 import { setPool } from '../src/db/pool.js';
-import { migrar, queryLineas, resumenPorPeriodo, getFacturaPdf } from '../src/db/db.js';
+import { migrar, queryLineas, resumenPorPeriodo, getFacturaPdf, eliminarPeriodo, listarPeriodos } from '../src/db/db.js';
 import { importarPdf, importarExcel } from '../src/services/importer.js';
 import { crearUsuario, verificarCredenciales } from '../src/auth/users.js';
 
@@ -63,4 +63,13 @@ test('reimportar el mismo PDF no duplica el periodo', async (t) => {
   await importarPdf(fs.readFileSync(PDF), { usuario: 'compa' });
   const marzo = await queryLineas({ periodo: '2026-03', origen: 'pdf' });
   assert.equal(marzo.length, 38);
+});
+
+test('eliminarPeriodo borra todas las lineas del mes y su factura', async (t) => {
+  if (!fs.existsSync(PDF)) return t.skip('PDF de ejemplo no disponible');
+  const borradas = await eliminarPeriodo('2026-03');
+  assert.ok(borradas > 0);
+  assert.equal((await queryLineas({ periodo: '2026-03' })).length, 0);
+  assert.equal(await getFacturaPdf('2026-03'), null);
+  assert.ok(!(await listarPeriodos()).includes('2026-03'));
 });

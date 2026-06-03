@@ -4,7 +4,7 @@ import multer from 'multer';
 import {
   queryLineas, listarPeriodos, listarLineas, listarPlanes,
   resumenPorPeriodo, getFactura, getFacturaPdf,
-  listarTipoCambio, upsertTipoCambio,
+  listarTipoCambio, upsertTipoCambio, eliminarPeriodo,
 } from '../db/db.js';
 import { importarPdf, importarExcel } from '../services/importer.js';
 import { exportarCSV, exportarXLSX } from '../services/export.js';
@@ -136,6 +136,16 @@ api.post('/tc/auto', puedeEditar, async (req, res, next) => {
     }
     res.json({ ok: true, tc, errores });
   } catch (e) { error('POST /tc/auto:', e.message); res.status(500).json({ error: e.message }); }
+});
+
+// Borrar un periodo completo (admin/editor). Sirve para corregir un mes mal cargado.
+api.delete('/periodo/:periodo', puedeEditar, async (req, res, next) => {
+  try {
+    const periodo = String(req.params.periodo);
+    if (!/^\d{4}-\d{2}$/.test(periodo)) return res.status(400).json({ error: 'Periodo invalido (YYYY-MM).' });
+    const borradas = await eliminarPeriodo(periodo);
+    res.json({ ok: true, periodo, borradas });
+  } catch (e) { error('DELETE /periodo:', e.message); res.status(500).json({ error: e.message }); }
 });
 
 // Migracion del Excel historico (una sola vez; admin/editor).
