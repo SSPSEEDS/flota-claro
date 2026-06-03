@@ -91,9 +91,63 @@ async function cargarDatos() {
   const f = filtrosActuales();
   const lineas = await fetch('/api/lineas?' + queryString(f)).then(x => x.json());
   actualizarExport(f);
+  renderAlertas(lineas);
   if (vista === 'tabla') renderTabla(lineas);
   else await renderPivote(lineas);
   montarScrollSuperior();
+}
+
+// --- Aumentos destacados (consumos fuera de lo normal) ---
+// Una línea se destaca cuando su total del último mes disponible supera al del
+// mes anterior por encima de los dos umbrales (porcentaje Y monto absoluto), así
+// evitamos marcar saltos chicos o variaciones porcentuales sobre montos bajos.
+const ALERTA_UMBRAL_PCT = 0.20;   // +20% respecto al mes anterior
+const ALERTA_UMBRAL_ABS = 3000;   // y al menos $3.000 más (sin IVA)
+
+function detectarAumentos(lineas) {
+  const porLinea = new Map();
+  for (const l of lineas) {
+    if (typeof l.total !== 'number') continue;
+    if (!porLinea.has(l.linea)) porLinea.set(l.linea, { usuario: l.usuario, totales: {} });
+    const e = porLinea.get(l.linea);
+    e.totales[l.periodo] = l.total;
+    if (l.usuario) e.usuario = l.usuario;
+  }
+  const aumentos = [];
+  for (const [linea, e] of porLinea) {
+    const periodos = Object.keys(e.totales).sort(); // viejo -> nuevo
+    if (periodos.length < 2) continue;              // sin mes previo no hay con qué comparar
+    const actual = periodos[periodos.length - 1];
+    const anterior = periodos[periodos.length - 2];
+    const totalAct = e.totales[actual];
+    const totalAnt = e.totales[anterior];
+    if (!totalAnt || totalAnt <= 0) continue;
+    const dif = totalAct - totalAnt;
+    const pctDif = dif / totalAnt;
+    if (dif >= ALERTA_UMBRAL_ABS && pctDif >= ALERTA_UMBRAL_PCT) {
+      aumentos.push({ linea, usuario: e.usuario, actual, anterior, dif, pctDif });
+    }
+  }
+  return aumentos.sort((a, b) => b.dif - a.dif); // mayor salto primero
+}
+
+function renderAlertas(lineas) {
+  const card = $('#alertas');
+  const aumentos = detectarAumentos(lineas);
+  if (!aumentos.length) { card.hidden = true; return; }
+  card.hidden = false;
+  $('#alertasLista').innerHTML = aumentos.map(a =>
+    `<div class="alerta-item">
+       <div class="alerta-quien">
+         <span class="alerta-usuario">${a.usuario || '(sin nombre)'}</span>
+         <span class="alerta-linea">Línea ${a.linea}</span>
+       </div>
+       <div class="alerta-detalle">
+         <span class="alerta-extra">+${money(a.dif)}</span>
+         <span class="alerta-pct">${pct(a.pctDif)}</span>
+         <span class="alerta-meses">${mesLabel(a.actual)} vs ${mesLabel(a.anterior)}</span>
+       </div>
+     </div>`).join('');
 }
 
 // Barra de scroll horizontal arriba de la tabla (sincronizada con la de abajo),
